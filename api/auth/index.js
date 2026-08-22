@@ -1,5 +1,5 @@
 import { getSupabase } from '../../lib/supabase.js';
-import { generateToken, hashPassword, requireAuth } from '../../lib/auth.js';
+import { generateToken, hashPassword, verifyPassword, requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
   const { action } = req.query;
@@ -108,8 +108,7 @@ async function login(req, res) {
       return res.status(401).json({ error: '用户名或密码错误' });
     }
 
-    const bcrypt = await import('bcryptjs');
-    const valid = await bcrypt.compare(password, clinic.password_hash);
+    const valid = await verifyPassword(password, clinic.password_hash);
 
     if (!valid) {
       return res.status(401).json({ error: '用户名或密码错误' });
