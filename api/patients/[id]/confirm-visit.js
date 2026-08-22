@@ -11,14 +11,10 @@ export default async function handler(req, res) {
 
     const { new_next_date, note } = req.body;
 
-    if (!new_next_date) {
-      return res.status(400).json({ error: '请选择下次复诊日期' });
-    }
-
-    // 调用存储过程完成确认复诊（事务操作）
+    // 允许不预约下次复诊日期
     const { error } = await supabase.rpc('confirm_visit', {
       p_patient_id: parseInt(id),
-      p_new_next_date: new_next_date,
+      p_new_next_date: new_next_date || null,
       p_note: note || ''
     });
 

@@ -92,7 +92,7 @@ function renderPatientTable(patients) {
         <td>
           <div style="display:flex; gap:6px; align-items:center;">
             <input type="date" class="date-input" id="nextDate_${p.id}" placeholder="选择日期">
-            <button class="btn btn-primary btn-sm" onclick="openConfirmVisit(${p.id}, '${escapeHtml(p.name)}')">
+            <button class="btn btn-primary btn-sm" onclick="openConfirmVisit(${p.id}, '${escapeHtml(p.name)}', '${p.next_visit_date || ''}')">
               确认
             </button>
           </div>
@@ -185,27 +185,17 @@ async function addPatient() {
 }
 
 // ========== 确认复诊（核心操作） ==========
-function openConfirmVisit(patientId, patientName) {
+function openConfirmVisit(patientId, patientName, currentNextDate) {
   confirmPatientId = patientId;
 
-  // 从输入框获取日期
   const dateInput = document.getElementById(`nextDate_${patientId}`);
   const dateValue = dateInput ? dateInput.value : '';
 
-  if (!dateValue) {
-    showToast('请先选择下次复诊日期', 'error');
-    return;
-  }
-
-  // 获取当前的下次复诊日期（从表格里读）
-  const row = dateInput.closest('tr');
-  const currentNextDate = row.cells[3].textContent.trim();
-
   let text = `确认 ${patientName} 完成本次复诊？`;
-  if (currentNextDate && currentNextDate !== '未设置') {
+  if (currentNextDate && currentNextDate !== 'null') {
     text += `<br><br>本次复诊日期：<strong>${currentNextDate}</strong>`;
   }
-  text += `<br>新的下次复诊：<strong>${dateValue}</strong>`;
+  text += `<br><br>下方可填新的下次复诊日期，<strong>不填则暂不预约</strong>`;
 
   document.getElementById('confirmVisitText').innerHTML = text;
   document.getElementById('newNextDate').value = dateValue;
@@ -217,11 +207,6 @@ function openConfirmVisit(patientId, patientName) {
 async function submitConfirmVisit() {
   const newNextDate = document.getElementById('newNextDate').value;
   const note = document.getElementById('visitNote').value;
-
-  if (!newNextDate) {
-    showToast('请选择下次复诊日期', 'error');
-    return;
-  }
 
   try {
     const res = await fetch(`/api/patients/${confirmPatientId}/confirm-visit`, {
