@@ -1,4 +1,5 @@
 import { getSupabase } from '../../lib/supabase.js';
+import { requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
   const supabase = getSupabase();
@@ -6,6 +7,21 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'PUT') {
+      const clinic = requireAuth(req, res);
+      if (!clinic) return;
+
+      // 验证患者属于当前门诊
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('id', id)
+        .eq('clinic_id', clinic.id)
+        .single();
+
+      if (!patient) {
+        return res.status(403).json({ error: '无权操作此患者' });
+      }
+
       const { name, next_visit_date, completed } = req.body;
 
       if (name !== undefined && !name.trim()) {
@@ -28,6 +44,20 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      const clinic = requireAuth(req, res);
+      if (!clinic) return;
+
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('id', id)
+        .eq('clinic_id', clinic.id)
+        .single();
+
+      if (!patient) {
+        return res.status(403).json({ error: '无权操作此患者' });
+      }
+
       const { error } = await supabase
         .from('patients')
         .delete()

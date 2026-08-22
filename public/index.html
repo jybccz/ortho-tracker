@@ -7,12 +7,51 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
+  <!-- 登录页面 -->
+  <div id="authPage" class="auth-page">
+    <div class="auth-card">
+      <h2>🦷 正畸复诊管理系统</h2>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</button>
+      </div>
+      <div id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" id="loginUsername" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="loginPassword" placeholder="请输入密码">
+        </div>
+        <button class="btn btn-primary auth-submit" onclick="doLogin()">登录</button>
+      </div>
+      <div id="registerForm" class="auth-form" style="display:none;">
+        <div class="form-group">
+          <label>门诊名称</label>
+          <input type="text" id="regClinicName" placeholder="如：阳光口腔正畸中心">
+        </div>
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" id="regUsername" placeholder="英文或数字，用于登录">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="regPassword" placeholder="至少6位">
+        </div>
+        <button class="btn btn-primary auth-submit" onclick="doRegister()">注册</button>
+      </div>
+      <div id="authError" class="auth-error" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- 主应用 -->
+  <div id="mainApp" class="container" style="display:none;">
     <!-- 顶部标题栏 -->
     <header class="header">
       <div class="header-left">
         <h1>🦷 正畸复诊管理</h1>
-        <p class="subtitle">患者复诊跟踪 · 一目了然</p>
+        <p class="subtitle" id="clinicNameDisplay"></p>
       </div>
       <div class="header-right">
         <button class="btn btn-primary" onclick="showAddPatientModal()">
@@ -24,6 +63,7 @@
         <button class="btn btn-outline" onclick="showBatchImportModal()">
           📥 批量导入
         </button>
+        <button class="btn btn-outline" onclick="logout()">退出登录</button>
       </div>
     </header>
 

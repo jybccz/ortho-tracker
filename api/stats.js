@@ -1,14 +1,18 @@
-import { getSupabase } from '../lib/supabase.js';
+import { getSupabase } from '../../lib/supabase.js';
+import { requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
-  const supabase = getSupabase();
-
   try {
     if (req.method !== 'GET') {
       return res.status(405).json({ error: '只支持 GET 请求' });
     }
 
-    const { data, error } = await supabase.rpc('get_stats');
+    const clinic = requireAuth(req, res);
+    if (!clinic) return;
+
+    const supabase = getSupabase();
+
+    const { data, error } = await supabase.rpc('get_stats', { p_clinic_id: clinic.id });
 
     if (error) throw error;
 

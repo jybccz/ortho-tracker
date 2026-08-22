@@ -1,4 +1,5 @@
 import { getSupabase } from '../../lib/supabase.js';
+import { requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
   const supabase = getSupabase();
@@ -8,18 +9,21 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: '只支持 POST 请求' });
     }
 
+    const clinic = requireAuth(req, res);
+    if (!clinic) return;
+
     const { patients } = req.body;
 
     if (!Array.isArray(patients) || patients.length === 0) {
       return res.status(400).json({ error: '没有可导入的患者数据' });
     }
 
-    // 构建插入数据
     const rows = patients
       .filter(p => p.name && p.name.trim())
       .map(p => ({
         name: p.name.trim(),
-        next_visit_date: p.next_visit_date || null
+        next_visit_date: p.next_visit_date || null,
+        clinic_id: clinic.id
       }));
 
     if (rows.length === 0) {

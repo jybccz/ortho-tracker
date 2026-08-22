@@ -5,11 +5,155 @@
 // 全局变量
 let currentPatientId = null;
 let confirmPatientId = null;
+let authToken = localStorage.getItem('ortho_token');
+let clinicInfo = JSON.parse(localStorage.getItem('ortho_clinic') || 'null');
+
+// ========== 认证相关 ==========
+function getAuthHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+  return headers;
+}
+
+async function authFetch(url, options = {}) {
+  options.headers = { ...getAuthHeaders(), ...(options.headers || {}) };
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    logout();
+    throw new Error('登录已过期，请重新登录');
+  }
+  return res;
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!username || !password) {
+    showAuthError('请填写用户名和密码');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth?action=login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      authToken = data.token;
+      clinicInfo = data.clinic;
+      localStorage.setItem('ortho_token', authToken);
+      localStorage.setItem('ortho_clinic', JSON.stringify(clinicInfo));
+      showMainApp();
+    } else {
+      showAuthError(data.error || '登录失败');
+    }
+  } catch (err) {
+    showAuthError('网络错误，请重试');
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('regClinicName').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+
+  if (!name || !username || !password) {
+    showAuthError('请填写所有字段');
+    return;
+  }
+
+  if (password.length < 6) {
+    showAuthError('密码至少6位');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth?action=register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, username, password })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      authToken = data.token;
+      clinicInfo = data.clinic;
+      localStorage.setItem('ortho_token', authToken);
+      localStorage.setItem('ortho_clinic', JSON.stringify(clinicInfo));
+      showMainApp();
+    } else {
+      showAuthError(data.error || '注册失败');
+    }
+  } catch (err) {
+    showAuthError('网络错误，请重试');
+  }
+}
+
+function logout() {
+  authToken = null;
+  clinicInfo = null;
+  localStorage.removeItem('ortho_token');
+  localStorage.removeItem('ortho_clinic');
+  document.getElementById('authPage').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+function showMainApp() {
+  document.getElementById('authPage').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  if (clinicInfo) {
+    document.getElementById('clinicNameDisplay').textContent = clinicInfo.name;
+  }
+  loadStats();
+  loadPatients();
+}
+
+async function checkAuth() {
+  if (!authToken) {
+    document.getElementById('authPage').style.display = 'flex';
+    return false;
+  }
+
+  try {
+    const res = await fetch('/api/auth?action=me', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (res.ok) {
+      showMainApp();
+      return true;
+    } else {
+      logout();
+      return false;
+    }
+  } catch {
+    document.getElementById('authPage').style.display = 'flex';
+    return false;
+  }
+}
 
 // ========== 页面初始化 ==========
 document.addEventListener('DOMContentLoaded', () => {
-  loadStats();
-  loadPatients();
+  checkAuth();
 
   // 点击弹窗外部关闭
   document.querySelectorAll('.modal').forEach(modal => {
@@ -24,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========== 统计数据 ==========
 async function loadStats() {
   try {
-    const res = await fetch('/api/stats');
+    const res = await authFetch('/api/stats');
     const data = await res.json();
     document.getElementById('stat-total').textContent = data.total;
     document.getElementById('stat-upcoming').textContent = data.upcoming;
@@ -48,7 +192,7 @@ async function loadPatients() {
     if (sort) params.set('sort', sort);
     if (showCompleted) params.set('show_completed', 'true');
 
-    const res = await fetch(`/api/patients?${params.toString()}`);
+    const res = await authFetch(`/api/patients?${params.toString()}`);
     const patients = await res.json();
 
     renderPatientTable(patients);
@@ -171,7 +315,7 @@ async function addPatient() {
   }
 
   try {
-    const res = await fetch('/api/patients', {
+    const res = await authFetch('/api/patients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, next_visit_date })
@@ -216,7 +360,7 @@ async function submitConfirmVisit() {
   const note = document.getElementById('visitNote').value;
 
   try {
-    const res = await fetch(`/api/patients/${confirmPatientId}/confirm-visit`, {
+    const res = await authFetch(`/api/patients/${confirmPatientId}/confirm-visit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ new_next_date: newNextDate, note })
@@ -245,7 +389,7 @@ async function showPatientDetail(patientId, patientName) {
 
   try {
     // 先获取患者基本信息
-    const patientsRes = await fetch('/api/patients?show_completed=true');
+    const patientsRes = await authFetch('/api/patients?show_completed=true');
     const patients = await patientsRes.json();
     const patient = patients.find(p => p.id === patientId);
 
@@ -261,7 +405,7 @@ async function showPatientDetail(patientId, patientName) {
     }
 
     // 获取历史记录
-    const res = await fetch(`/api/patients/${patientId}/records`);
+    const res = await authFetch(`/api/patients/${patientId}/records`);
     const records = await res.json();
     renderRecords(records);
 
@@ -318,7 +462,7 @@ async function addRecord() {
   }
 
   try {
-    const res = await fetch(`/api/patients/${currentPatientId}/records`, {
+    const res = await authFetch(`/api/patients/${currentPatientId}/records`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visit_date, note })
@@ -328,7 +472,7 @@ async function addRecord() {
       showToast('添加成功', 'success');
       hideAddRecordForm();
       // 刷新记录列表
-      const recordsRes = await fetch(`/api/patients/${currentPatientId}/records`);
+      const recordsRes = await authFetch(`/api/patients/${currentPatientId}/records`);
       const records = await recordsRes.json();
       renderRecords(records);
       loadPatients();
@@ -346,11 +490,11 @@ async function deleteRecord(recordId) {
   if (!confirm('确定要删除这条复诊记录吗？')) return;
 
   try {
-    const res = await fetch(`/api/records/${recordId}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/records/${recordId}`, { method: 'DELETE' });
     if (res.ok) {
       showToast('删除成功', 'success');
       // 刷新
-      const recordsRes = await fetch(`/api/patients/${currentPatientId}/records`);
+      const recordsRes = await authFetch(`/api/patients/${currentPatientId}/records`);
       const records = await recordsRes.json();
       renderRecords(records);
       loadPatients();
@@ -377,7 +521,7 @@ async function submitEditDate() {
   const newDate = document.getElementById('editNextDate').value;
 
   try {
-    const res = await fetch(`/api/patients/${editDatePatientId}`, {
+    const res = await authFetch(`/api/patients/${editDatePatientId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ next_visit_date: newDate || null })
@@ -413,7 +557,7 @@ async function submitEditName() {
   }
 
   try {
-    const res = await fetch(`/api/patients/${currentPatientId}`, {
+    const res = await authFetch(`/api/patients/${currentPatientId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newName })
@@ -463,7 +607,7 @@ async function submitEditRecord(recordId) {
   }
 
   try {
-    const res = await fetch(`/api/records/${recordId}`, {
+    const res = await authFetch(`/api/records/${recordId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visit_date, note })
@@ -471,7 +615,7 @@ async function submitEditRecord(recordId) {
 
     if (res.ok) {
       showToast('修改成功', 'success');
-      const recordsRes = await fetch(`/api/patients/${currentPatientId}/records`);
+      const recordsRes = await authFetch(`/api/patients/${currentPatientId}/records`);
       const records = await recordsRes.json();
       renderRecords(records);
       loadPatients();
@@ -492,7 +636,7 @@ async function toggleComplete() {
   const newCompleted = !isCompleted;
 
   try {
-    const res = await fetch(`/api/patients/${currentPatientId}`, {
+    const res = await authFetch(`/api/patients/${currentPatientId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ completed: newCompleted })
@@ -516,7 +660,7 @@ async function deletePatient() {
   if (!confirm('确定要删除这位患者吗？所有复诊记录也会被删除，此操作不可恢复！')) return;
 
   try {
-    const res = await fetch(`/api/patients/${currentPatientId}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/patients/${currentPatientId}`, { method: 'DELETE' });
     if (res.ok) {
       showToast('删除成功', 'success');
       closeModal('patientDetailModal');
@@ -632,7 +776,7 @@ async function submitBatchImport() {
   document.getElementById('batchImportBtn').textContent = '导入中...';
 
   try {
-    const res = await fetch('/api/patients/batch', {
+    const res = await authFetch('/api/patients/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ patients: batchImportData })
@@ -657,9 +801,21 @@ async function submitBatchImport() {
 }
 
 // ========== 导出 ==========
-function exportCSV() {
-  window.location.href = '/api/export/csv';
-  showToast('正在导出...', 'success');
+async function exportCSV() {
+  try {
+    const res = await authFetch('/api/export/csv');
+    if (!res.ok) throw new Error('导出失败');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `患者复诊表-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('导出成功', 'success');
+  } catch (err) {
+    showToast('导出失败', 'error');
+  }
 }
 
 // ========== 工具函数 ==========

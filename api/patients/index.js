@@ -1,16 +1,22 @@
 import { getSupabase } from '../../lib/supabase.js';
+import { requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
   const supabase = getSupabase();
 
   try {
     if (req.method === 'GET') {
+      const clinic = requireAuth(req, res);
+      if (!clinic) return;
+
       const search = req.query.search || '';
       const sort = req.query.sort || 'next_visit';
+      const showCompleted = req.query.show_completed === 'true';
 
       let query = supabase
         .from('patient_summary')
-        .select('id, name, next_visit_date, completed, last_visit_date, visit_count');
+        .select('id, name, next_visit_date, completed, last_visit_date, visit_count')
+        .eq('clinic_id', clinic.id);
 
       if (search) {
         query = query.ilike('name', `%${search}%`);
@@ -28,13 +34,10 @@ export default async function handler(req, res) {
 
       let result = data || [];
 
-      // 默认隐藏已完成的患者
-      const showCompleted = req.query.show_completed === 'true';
       if (!showCompleted) {
         result = result.filter(p => !p.completed);
       }
 
-      // 逾期优先排序
       if (sort === 'overdue') {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -57,6 +60,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      const clinic = requireAuth(req, res);
+      if (!clinic) return;
+
       const { name, next_visit_date } = req.body;
 
       if (!name || !name.trim()) {
@@ -65,7 +71,7 @@ export default async function handler(req, res) {
 
       const { data, error } = await supabase
         .from('patients')
-        .insert({ name: name.trim(), next_visit_date: next_visit_date || null })
+        .insert({ name: name.trim(), next_visit_date: next_visit_date || null, clinic_id: clinic.id })
         .select()
         .single();
 

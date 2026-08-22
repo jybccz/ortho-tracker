@@ -1,7 +1,7 @@
 import { getSupabase } from '../../lib/supabase.js';
+import { requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
-  const supabase = getSupabase();
   const format = req.query.format;
 
   try {
@@ -9,9 +9,15 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: '只支持 GET 请求' });
     }
 
+    const clinic = requireAuth(req, res);
+    if (!clinic) return;
+
+    const supabase = getSupabase();
+
     const { data, error } = await supabase
       .from('patient_summary')
       .select('name, last_visit_date, next_visit_date, visit_count')
+      .eq('clinic_id', clinic.id)
       .order('next_visit_date', { ascending: true, nullsFirst: false });
 
     if (error) throw error;
@@ -24,6 +30,7 @@ export default async function handler(req, res) {
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${fileName}`);
       return res.status(200).json({
         export_time: new Date().toISOString(),
+        clinic: clinic.name,
         patients: data || []
       });
     }
