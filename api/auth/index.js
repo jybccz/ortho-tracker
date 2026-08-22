@@ -2,11 +2,15 @@ import { getSupabase } from '../../lib/supabase.js';
 import { generateToken, hashPassword, requireAuth } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
+  const { action } = req.query;
+
+  if (action === 'me') {
+    return me(req, res);
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: '只支持 POST 请求' });
   }
-
-  const { action } = req.query;
 
   if (action === 'register') {
     return register(req, res);
