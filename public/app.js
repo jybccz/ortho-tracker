@@ -112,7 +112,7 @@ function renderPatientTable(patients) {
  */
 function getVisitStatus(nextDateStr, today) {
   if (!nextDateStr) {
-    return { rowClass: 'row-muted', statusText: '未预约', statusClass: 'status-muted' };
+    return { rowClass: 'row-danger', statusText: '未预约', statusClass: 'status-danger' };
   }
 
   const nextDate = new Date(nextDateStr);
