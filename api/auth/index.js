@@ -46,12 +46,20 @@ async function register(req, res) {
 
     const passwordHash = await hashPassword(password);
 
+    // 检查是否是第一个注册的门诊（自动设为管理员）
+    const { count } = await supabase
+      .from('clinics')
+      .select('*', { count: 'exact', head: true });
+
+    const isFirst = count === 0;
+
     const { data, error } = await supabase
       .from('clinics')
       .insert({
         name: name.trim(),
         username: username.trim(),
-        password_hash: passwordHash
+        password_hash: passwordHash,
+        is_admin: isFirst
       })
       .select()
       .single();
@@ -107,7 +115,7 @@ async function login(req, res) {
 
     return res.status(200).json({
       token,
-      clinic: { id: clinic.id, name: clinic.name, username: clinic.username }
+      clinic: { id: clinic.id, name: clinic.name, username: clinic.username, is_admin: clinic.is_admin || false }
     });
   } catch (err) {
     console.error('登录失败:', err);
@@ -119,5 +127,18 @@ async function me(req, res) {
   const clinic = requireAuth(req, res);
   if (!clinic) return;
 
-  return res.status(200).json({ clinic });
+  // 从数据库获取最新的 is_admin 状态
+  const supabase = getSupabase();
+  const { data: dbClinic } = await supabase
+    .from('clinics')
+    .select('is_admin')
+    .eq('id', clinic.id)
+    .single();
+
+  return res.status(200).json({
+    clinic: {
+      ...clinic,
+      is_admin: dbClinic?.is_admin || false
+    }
+  });
 }

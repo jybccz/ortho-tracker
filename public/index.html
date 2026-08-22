@@ -67,6 +67,9 @@
         <button class="btn btn-outline" onclick="showBatchImportModal()">
           📥 批量导入
         </button>
+        <button class="btn btn-outline" id="adminBtn" style="display:none;" onclick="showAdminModal()">
+          🏥 门诊管理
+        </button>
         <button class="btn btn-outline" onclick="logout()">退出登录</button>
       </div>
     </header>
@@ -311,6 +314,45 @@
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeModal('confirmVisitModal')">取消</button>
         <button class="btn btn-primary" onclick="submitConfirmVisit()">确认完成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 门诊管理弹窗 -->
+  <div id="adminModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+      <div class="modal-header">
+        <h2>🏥 门诊管理</h2>
+        <button class="close-btn" onclick="closeModal('adminModal')">✕</button>
+      </div>
+      <div style="padding:20px;">
+        <p style="color:#6b7280;margin-bottom:15px;font-size:14px;">所有注册的门诊列表，可以重置密码</p>
+        <div id="clinicList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重置密码弹窗 -->
+  <div id="resetPasswordModal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <h2>🔑 重置密码</h2>
+        <button class="close-btn" onclick="closeModal('resetPasswordModal')">✕</button>
+      </div>
+      <div style="padding:20px;">
+        <p id="resetClinicName" style="font-weight:bold;margin-bottom:15px;"></p>
+        <div class="form-group">
+          <label>新密码</label>
+          <input type="password" id="resetNewPassword" placeholder="至少6位">
+        </div>
+        <div class="form-group">
+          <label>确认密码</label>
+          <input type="password" id="resetNewPasswordConfirm" placeholder="再输入一次">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:15px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('resetPasswordModal')">取消</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="submitResetPassword()">确认重置</button>
+        </div>
       </div>
     </div>
   </div>

@@ -129,6 +129,11 @@ function showMainApp() {
   document.getElementById('mainApp').style.display = 'block';
   if (clinicInfo) {
     document.getElementById('clinicNameDisplay').textContent = clinicInfo.name;
+    if (clinicInfo.is_admin) {
+      document.getElementById('adminBtn').style.display = 'inline-block';
+    } else {
+      document.getElementById('adminBtn').style.display = 'none';
+    }
   }
   loadStats();
   loadPatients();
@@ -145,6 +150,9 @@ async function checkAuth() {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     if (res.ok) {
+      const data = await res.json();
+      clinicInfo = data.clinic;
+      localStorage.setItem('ortho_clinic', JSON.stringify(clinicInfo));
       showMainApp();
       return true;
     } else {
@@ -847,4 +855,79 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// ========== 管理员功能 ==========
+let resetClinicId = null;
+
+async function showAdminModal() {
+  openModal('adminModal');
+  await loadClinics();
+}
+
+async function loadClinics() {
+  try {
+    const res = await authFetch('/api/admin/clinics');
+    const clinics = await res.json();
+    const list = document.getElementById('clinicList');
+    list.innerHTML = '';
+
+    for (const c of clinics) {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #e5e7eb;border-radius:8px;';
+      const date = new Date(c.created_at).toLocaleDateString('zh-CN');
+      item.innerHTML = `
+        <div>
+          <span style="font-weight:600;">${escapeHtml(c.name)}</span>
+          ${c.is_admin ? '<span style="background:#dbeafe;color:#2563eb;padding:2px 6px;border-radius:4px;font-size:12px;margin-left:8px;">管理员</span>' : ''}
+          <div style="color:#9ca3af;font-size:13px;margin-top:2px;">用户名：${escapeHtml(c.username)} · 注册：${date}</div>
+        </div>
+        ${c.is_admin ? '' : `<button class="btn btn-outline" style="padding:6px 12px;font-size:13px;" onclick="openResetPassword(${c.id}, '${escapeHtml(c.name)}')">🔑 重置密码</button>`}
+      `;
+      list.appendChild(item);
+    }
+  } catch (err) {
+    showToast('加载失败', 'error');
+  }
+}
+
+function openResetPassword(clinicId, clinicName) {
+  resetClinicId = clinicId;
+  document.getElementById('resetClinicName').textContent = clinicName;
+  document.getElementById('resetNewPassword').value = '';
+  document.getElementById('resetNewPasswordConfirm').value = '';
+  openModal('resetPasswordModal');
+}
+
+async function submitResetPassword() {
+  const newPassword = document.getElementById('resetNewPassword').value;
+  const confirmPassword = document.getElementById('resetNewPasswordConfirm').value;
+
+  if (!newPassword || newPassword.length < 6) {
+    showToast('密码至少6位', 'error');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showToast('两次密码不一致', 'error');
+    return;
+  }
+
+  try {
+    const res = await authFetch('/api/admin/clinics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clinic_id: resetClinicId, new_password: newPassword })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      showToast('密码已重置', 'success');
+      closeModal('resetPasswordModal');
+    } else {
+      showToast(data.error || '重置失败', 'error');
+    }
+  } catch (err) {
+    showToast('重置失败', 'error');
+  }
 }
