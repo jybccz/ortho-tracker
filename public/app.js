@@ -29,6 +29,7 @@ async function loadStats() {
     document.getElementById('stat-total').textContent = data.total;
     document.getElementById('stat-upcoming').textContent = data.upcoming;
     document.getElementById('stat-overdue').textContent = data.overdue;
+    document.getElementById('stat-not-booked').textContent = data.not_booked || 0;
   } catch (err) {
     console.error('加载统计失败:', err);
   }
@@ -110,7 +111,7 @@ function renderPatientTable(patients) {
  */
 function getVisitStatus(nextDateStr, today) {
   if (!nextDateStr) {
-    return { rowClass: '', statusText: '未设置', statusClass: 'status-none' };
+    return { rowClass: 'row-muted', statusText: '未预约', statusClass: 'status-muted' };
   }
 
   const nextDate = new Date(nextDateStr);

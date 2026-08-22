@@ -102,7 +102,7 @@ body {
 /* ========== 统计卡片 ========== */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 15px;
   margin-bottom: 20px;
 }
@@ -133,6 +133,14 @@ body {
 
 .stat-danger .stat-number {
   color: #dc2626;
+}
+
+.stat-muted .stat-number {
+  color: #6b7280;
+}
+
+.stat-muted {
+  border-left: 3px solid #6b7280;
 }
 
 /* ========== 工具栏 ========== */
@@ -223,6 +231,14 @@ body {
   background: #fee2e2;
 }
 
+.patient-table tr.row-muted td {
+  background: #f8fafc;
+}
+
+.patient-table tr.row-muted:hover td {
+  background: #f1f5f9;
+}
+
 /* 姓名链接样式 */
 .patient-name {
   font-weight: 500;
@@ -262,6 +278,11 @@ body {
 .status-none {
   background: #f1f5f9;
   color: #64748b;
+}
+
+.status-muted {
+  background: #f1f5f9;
+  color: #6b7280;
 }
 
 /* 日期输入框 */
@@ -522,7 +543,7 @@ body {
   }
 
   .stats-row {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
 
