@@ -84,6 +84,7 @@ function renderPatientTable(patients) {
         <td>${p.last_visit_date || '<span style="color:#aaa;">—</span>'}</td>
         <td style="font-weight:500;">
           ${p.next_visit_date || '<span style="color:#aaa;">未设置</span>'}
+          <button class="btn btn-link" onclick="openEditDateModal(${p.id}, '${escapeHtml(p.name)}', '${p.next_visit_date || ''}')" title="修改日期">✏️</button>
         </td>
         <td>
           <span class="status-badge ${statusClass}">${statusText}</span>
@@ -281,12 +282,17 @@ function renderRecords(records) {
   }
 
   list.innerHTML = records.map(r => `
-    <div class="record-item">
-      <div>
+    <div class="record-item" id="record_${r.id}">
+      <div class="record-display">
         <div class="record-date">${r.visit_date}</div>
         ${r.note ? `<div class="record-note">${escapeHtml(r.note)}</div>` : ''}
       </div>
+      <div class="record-edit" style="display:none;">
+        <input type="date" id="editRecordDate_${r.id}" value="${r.visit_date}" class="date-input">
+        <input type="text" id="editRecordNote_${r.id}" value="${escapeHtml(r.note || '')}" placeholder="备注" class="note-input">
+      </div>
       <div class="record-actions">
+        <button class="record-edit-btn" onclick="toggleEditRecord(${r.id})" id="editBtn_${r.id}">编辑</button>
         <button class="record-delete" onclick="deleteRecord(${r.id})">删除</button>
       </div>
     </div>
@@ -356,6 +362,128 @@ async function deleteRecord(recordId) {
     }
   } catch (err) {
     showToast('删除失败', 'error');
+  }
+}
+
+// ========== 修改下次复诊日期 ==========
+let editDatePatientId = null;
+
+function openEditDateModal(patientId, patientName, currentDate) {
+  editDatePatientId = patientId;
+  document.getElementById('editDateTitle').textContent = `修改 ${patientName} 的复诊日期`;
+  document.getElementById('editNextDate').value = currentDate || '';
+  openModal('editDateModal');
+}
+
+async function submitEditDate() {
+  const newDate = document.getElementById('editNextDate').value;
+
+  try {
+    const res = await fetch(`/api/patients/${editDatePatientId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ next_visit_date: newDate || null })
+    });
+
+    if (res.ok) {
+      showToast('修改成功', 'success');
+      closeModal('editDateModal');
+      loadPatients();
+      loadStats();
+    } else {
+      const data = await res.json();
+      showToast(data.error || '修改失败', 'error');
+    }
+  } catch (err) {
+    showToast('修改失败', 'error');
+  }
+}
+
+// ========== 修改患者姓名 ==========
+function openEditNameModal() {
+  const name = document.getElementById('detailPatientName').textContent;
+  document.getElementById('editPatientName').value = name;
+  openModal('editNameModal');
+}
+
+async function submitEditName() {
+  const newName = document.getElementById('editPatientName').value.trim();
+
+  if (!newName) {
+    showToast('请输入姓名', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/patients/${currentPatientId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName })
+    });
+
+    if (res.ok) {
+      showToast('修改成功', 'success');
+      document.getElementById('detailPatientName').textContent = newName;
+      closeModal('editNameModal');
+      loadPatients();
+    } else {
+      const data = await res.json();
+      showToast(data.error || '修改失败', 'error');
+    }
+  } catch (err) {
+    showToast('修改失败', 'error');
+  }
+}
+
+// ========== 编辑复诊记录 ==========
+function toggleEditRecord(recordId) {
+  const item = document.getElementById(`record_${recordId}`);
+  const display = item.querySelector('.record-display');
+  const edit = item.querySelector('.record-edit');
+  const btn = document.getElementById(`editBtn_${recordId}`);
+
+  if (edit.style.display === 'none') {
+    display.style.display = 'none';
+    edit.style.display = 'block';
+    btn.textContent = '保存';
+    btn.onclick = () => submitEditRecord(recordId);
+  } else {
+    display.style.display = 'block';
+    edit.style.display = 'none';
+    btn.textContent = '编辑';
+    btn.onclick = () => toggleEditRecord(recordId);
+  }
+}
+
+async function submitEditRecord(recordId) {
+  const visit_date = document.getElementById(`editRecordDate_${recordId}`).value;
+  const note = document.getElementById(`editRecordNote_${recordId}`).value;
+
+  if (!visit_date) {
+    showToast('请选择日期', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/records/${recordId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visit_date, note })
+    });
+
+    if (res.ok) {
+      showToast('修改成功', 'success');
+      const recordsRes = await fetch(`/api/patients/${currentPatientId}/records`);
+      const records = await recordsRes.json();
+      renderRecords(records);
+      loadPatients();
+      loadStats();
+    } else {
+      const data = await res.json();
+      showToast(data.error || '修改失败', 'error');
+    }
+  } catch (err) {
+    showToast('修改失败', 'error');
   }
 }
 

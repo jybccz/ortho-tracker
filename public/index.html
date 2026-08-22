@@ -156,8 +156,49 @@
         </div>
 
         <div style="margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
+          <button class="btn btn-outline" onclick="openEditNameModal()">✏️ 修改姓名</button>
           <button class="btn btn-danger-outline" onclick="deletePatient()">🗑 删除患者</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改日期弹窗 -->
+  <div class="modal" id="editDateModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="editDateTitle">修改复诊日期</h3>
+        <button class="close-btn" onclick="closeModal('editDateModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>下次复诊日期</label>
+          <input type="date" id="editNextDate">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('editDateModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitEditDate()">保存修改</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改患者姓名弹窗 -->
+  <div class="modal" id="editNameModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>修改患者姓名</h3>
+        <button class="close-btn" onclick="closeModal('editNameModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>患者姓名 *</label>
+          <input type="text" id="editPatientName">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('editNameModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitEditName()">保存修改</button>
       </div>
     </div>
   </div>

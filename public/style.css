@@ -496,6 +496,42 @@ body {
   text-decoration: underline;
 }
 
+.record-edit-btn {
+  color: #2563eb;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.record-edit-btn:hover {
+  text-decoration: underline;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.btn-link:hover {
+  color: #2563eb;
+}
+
+.note-input {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .no-records {
   text-align: center;
   padding: 30px;
