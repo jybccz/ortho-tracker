@@ -491,6 +491,132 @@ async function deletePatient() {
   }
 }
 
+// ========== 批量导入 ==========
+let batchImportData = [];
+
+function showBatchImportModal() {
+  batchImportData = [];
+  document.getElementById('csvFileInput').value = '';
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('batchImportBtn').disabled = true;
+  openModal('batchImportModal');
+}
+
+function downloadCSVTemplate() {
+  const csv = '\uFEFF姓名,下次复诊日期\n张三,2026-09-24\n李四,\n王五,2026-10-15';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '患者导入模板.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleCSVUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+
+    if (lines.length < 2) {
+      showToast('文件内容太少，请检查格式', 'error');
+      return;
+    }
+
+    // 解析第一行表头
+    const headers = parseCSVLine(lines[0]).map(h => h.trim());
+
+    // 找到姓名和日期列
+    const nameIdx = headers.findIndex(h => h.includes('姓名') || h.toLowerCase().includes('name'));
+    const dateIdx = headers.findIndex(h => h.includes('日期') || h.includes('复诊') || h.toLowerCase().includes('date'));
+
+    if (nameIdx === -1) {
+      showToast('找不到"姓名"列，请检查表头', 'error');
+      return;
+    }
+
+    batchImportData = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVLine(lines[i]);
+      const name = cols[nameIdx]?.trim();
+      const nextDate = dateIdx !== -1 ? cols[dateIdx]?.trim() : '';
+      if (name) {
+        batchImportData.push({ name, next_visit_date: nextDate || '' });
+      }
+    }
+
+    if (batchImportData.length === 0) {
+      showToast('没有有效的患者数据', 'error');
+      return;
+    }
+
+    // 显示预览
+    const preview = batchImportData.slice(0, 5).map(p =>
+      `<div style="padding:4px 0; border-bottom:1px solid #eee;">${escapeHtml(p.name)} — ${p.next_visit_date || '<span style="color:#aaa;">未设置</span>'}</div>`
+    ).join('');
+    document.getElementById('csvPreviewContent').innerHTML = preview;
+    document.getElementById('csvTotalCount').textContent = `共 ${batchImportData.length} 条患者数据`;
+    document.getElementById('csvPreview').style.display = 'block';
+    document.getElementById('batchImportBtn').disabled = false;
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+async function submitBatchImport() {
+  if (batchImportData.length === 0) return;
+
+  document.getElementById('batchImportBtn').disabled = true;
+  document.getElementById('batchImportBtn').textContent = '导入中...';
+
+  try {
+    const res = await fetch('/api/patients/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patients: batchImportData })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`成功导入 ${data.count} 位患者`, 'success');
+      closeModal('batchImportModal');
+      loadPatients();
+      loadStats();
+    } else {
+      const data = await res.json();
+      showToast(data.error || '导入失败', 'error');
+    }
+  } catch (err) {
+    showToast('导入失败', 'error');
+  }
+
+  document.getElementById('batchImportBtn').disabled = false;
+  document.getElementById('batchImportBtn').textContent = '确认导入';
+}
+
 // ========== 导出 ==========
 function exportCSV() {
   window.location.href = '/api/export/csv';
