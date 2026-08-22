@@ -1,0 +1,12 @@
+{
+  "name": "ortho-tracker-vercel",
+  "version": "1.0.0",
+  "description": "正畸患者复诊管理系统 - Vercel + Supabase 版",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

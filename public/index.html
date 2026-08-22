@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>正畸复诊管理系统</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部标题栏 -->
+    <header class="header">
+      <div class="header-left">
+        <h1>🦷 正畸复诊管理</h1>
+        <p class="subtitle">患者复诊跟踪 · 一目了然</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" onclick="showAddPatientModal()">
+          ➕ 新增患者
+        </button>
+        <button class="btn btn-secondary" onclick="exportCSV()">
+          📤 导出表格
+        </button>
+      </div>
+    </header>
+
+    <!-- 统计卡片 -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">患者总数</div>
+      </div>
+      <div class="stat-card stat-warning">
+        <div class="stat-number" id="stat-upcoming">0</div>
+        <div class="stat-label">7天内复诊</div>
+      </div>
+      <div class="stat-card stat-danger">
+        <div class="stat-number" id="stat-overdue">0</div>
+        <div class="stat-label">已逾期</div>
+      </div>
+    </div>
+
+    <!-- 搜索和筛选 -->
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 搜索患者姓名..." oninput="loadPatients()">
+      </div>
+      <div class="sort-box">
+        <select id="sortSelect" onchange="loadPatients()">
+          <option value="overdue">按逾期优先</option>
+          <option value="next_visit">按复诊日期</option>
+          <option value="name">按姓名</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" onclick="loadPatients()">🔄 刷新</button>
+    </div>
+
+    <!-- 患者列表表格 -->
+    <div class="table-container">
+      <table class="patient-table">
+        <thead>
+          <tr>
+            <th style="width:40px;">序号</th>
+            <th>患者姓名</th>
+            <th style="width:140px;">上次复诊</th>
+            <th style="width:140px;">下次复诊</th>
+            <th style="width:100px;">状态</th>
+            <th style="width:280px;">预约下次</th>
+            <th style="width:100px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody">
+          <!-- 动态填充 -->
+        </tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <p>暂无患者数据</p>
+        <button class="btn btn-primary" onclick="showAddPatientModal()">➕ 添加第一位患者</button>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>数据保存在服务器，请定期导出备份</p>
+    </footer>
+  </div>
+
+  <!-- 新增患者弹窗 -->
+  <div class="modal" id="addPatientModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>新增患者</h3>
+        <button class="close-btn" onclick="closeModal('addPatientModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>患者姓名 *</label>
+          <input type="text" id="newPatientName" placeholder="请输入姓名">
+        </div>
+        <div class="form-group">
+          <label>下次复诊日期</label>
+          <input type="date" id="newPatientNextDate">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('addPatientModal')">取消</button>
+        <button class="btn btn-primary" onclick="addPatient()">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 患者详情弹窗 -->
+  <div class="modal" id="patientDetailModal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="detailPatientName">患者详情</h3>
+        <button class="close-btn" onclick="closeModal('patientDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-info">
+          <div class="detail-item">
+            <span class="detail-label">下次复诊：</span>
+            <span id="detailNextDate" class="detail-value">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">复诊总次数：</span>
+            <span id="detailVisitCount" class="detail-value">-</span>
+          </div>
+        </div>
+
+        <h4 style="margin-top:20px; margin-bottom:10px;">历史复诊记录</h4>
+        <div class="records-list" id="recordsList">
+          <!-- 动态填充 -->
+        </div>
+
+        <div style="margin-top:15px;">
+          <button class="btn btn-outline" onclick="showAddRecordForm()">➕ 补录复诊记录</button>
+        </div>
+
+        <div id="addRecordForm" style="display:none; margin-top:15px; padding:15px; background:#f5f5f5; border-radius:8px;">
+          <div class="form-group">
+            <label>复诊日期 *</label>
+            <input type="date" id="newRecordDate">
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="newRecordNote" placeholder="选填">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" onclick="addRecord()">确认添加</button>
+            <button class="btn btn-outline" onclick="hideAddRecordForm()">取消</button>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
+          <button class="btn btn-danger-outline" onclick="deletePatient()">🗑 删除患者</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认复诊弹窗 -->
+  <div class="modal" id="confirmVisitModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>确认复诊</h3>
+        <button class="close-btn" onclick="closeModal('confirmVisitModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmVisitText" style="margin-bottom:15px;"></p>
+        <div class="form-group">
+          <label>新的下次复诊日期 *</label>
+          <input type="date" id="newNextDate">
+        </div>
+        <div class="form-group">
+          <label>本次备注（选填）</label>
+          <input type="text" id="visitNote" placeholder="比如：调整钢丝、换牙套等">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('confirmVisitModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitConfirmVisit()">确认完成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示消息 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
