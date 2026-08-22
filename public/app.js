@@ -76,6 +76,7 @@ async function doRegister() {
   const name = document.getElementById('regClinicName').value.trim();
   const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value;
+  const passwordConfirm = document.getElementById('regPasswordConfirm').value;
 
   if (!name || !username || !password) {
     showAuthError('请填写所有字段');
@@ -84,6 +85,11 @@ async function doRegister() {
 
   if (password.length < 6) {
     showAuthError('密码至少6位');
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    showAuthError('两次密码不一致');
     return;
   }
 
