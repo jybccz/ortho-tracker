@@ -30,6 +30,7 @@ async function loadStats() {
     document.getElementById('stat-upcoming').textContent = data.upcoming;
     document.getElementById('stat-overdue').textContent = data.overdue;
     document.getElementById('stat-not-booked').textContent = data.not_booked || 0;
+    document.getElementById('stat-completed').textContent = data.completed || 0;
   } catch (err) {
     console.error('加载统计失败:', err);
   }
@@ -40,10 +41,12 @@ async function loadPatients() {
   try {
     const search = document.getElementById('searchInput').value;
     const sort = document.getElementById('sortSelect').value;
+    const showCompleted = document.getElementById('showCompleted').checked;
 
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (sort) params.set('sort', sort);
+    if (showCompleted) params.set('show_completed', 'true');
 
     const res = await fetch(`/api/patients?${params.toString()}`);
     const patients = await res.json();
@@ -71,7 +74,7 @@ function renderPatientTable(patients) {
   today.setHours(0, 0, 0, 0);
 
   tbody.innerHTML = patients.map((p, index) => {
-    const { rowClass, statusText, statusClass } = getVisitStatus(p.next_visit_date, today);
+    const { rowClass, statusText, statusClass } = getVisitStatus(p.next_visit_date, today, p.completed);
 
     return `
       <tr class="${rowClass}">
@@ -110,7 +113,11 @@ function renderPatientTable(patients) {
 /**
  * 根据下次复诊日期计算状态
  */
-function getVisitStatus(nextDateStr, today) {
+function getVisitStatus(nextDateStr, today, completed) {
+  if (completed) {
+    return { rowClass: 'row-completed', statusText: '已完成', statusClass: 'status-completed' };
+  }
+
   if (!nextDateStr) {
     return { rowClass: 'row-danger', statusText: '未预约', statusClass: 'status-danger' };
   }
@@ -140,7 +147,7 @@ function getVisitStatus(nextDateStr, today) {
     };
   } else {
     return {
-      rowClass: '',
+      rowClass: 'row-normal',
       statusText: '正常',
       statusClass: 'status-normal'
     };
@@ -238,13 +245,19 @@ async function showPatientDetail(patientId, patientName) {
 
   try {
     // 先获取患者基本信息
-    const patientsRes = await fetch('/api/patients');
+    const patientsRes = await fetch('/api/patients?show_completed=true');
     const patients = await patientsRes.json();
     const patient = patients.find(p => p.id === patientId);
 
     if (patient) {
       document.getElementById('detailNextDate').textContent = patient.next_visit_date || '未设置';
       document.getElementById('detailVisitCount').textContent = patient.visit_count + ' 次';
+      const completeBtn = document.getElementById('toggleCompleteBtn');
+      if (patient.completed) {
+        completeBtn.textContent = '取消完成标记';
+      } else {
+        completeBtn.textContent = '标记治疗完成';
+      }
     }
 
     // 获取历史记录
@@ -469,6 +482,32 @@ async function submitEditRecord(recordId) {
     }
   } catch (err) {
     showToast('修改失败', 'error');
+  }
+}
+
+// ========== 标记治疗完成 ==========
+async function toggleComplete() {
+  const completeBtn = document.getElementById('toggleCompleteBtn');
+  const isCompleted = completeBtn.textContent.includes('取消');
+  const newCompleted = !isCompleted;
+
+  try {
+    const res = await fetch(`/api/patients/${currentPatientId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: newCompleted })
+    });
+
+    if (res.ok) {
+      showToast(newCompleted ? '已标记为治疗完成' : '已取消完成标记', 'success');
+      completeBtn.textContent = newCompleted ? '取消完成标记' : '标记治疗完成';
+      loadPatients();
+      loadStats();
+    } else {
+      showToast('操作失败', 'error');
+    }
+  } catch (err) {
+    showToast('操作失败', 'error');
   }
 }
 

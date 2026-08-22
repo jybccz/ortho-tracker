@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
       let query = supabase
         .from('patient_summary')
-        .select('id, name, next_visit_date, last_visit_date, visit_count');
+        .select('id, name, next_visit_date, completed, last_visit_date, visit_count');
 
       if (search) {
         query = query.ilike('name', `%${search}%`);
@@ -27,6 +27,12 @@ export default async function handler(req, res) {
       if (error) throw error;
 
       let result = data || [];
+
+      // 默认隐藏已完成的患者
+      const showCompleted = req.query.show_completed === 'true';
+      if (!showCompleted) {
+        result = result.filter(p => !p.completed);
+      }
 
       // 逾期优先排序
       if (sort === 'overdue') {

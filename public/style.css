@@ -102,7 +102,7 @@ body {
 /* ========== 统计卡片 ========== */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 15px;
   margin-bottom: 20px;
 }
@@ -239,6 +239,22 @@ body {
   background: #f1f5f9;
 }
 
+.patient-table tr.row-normal td {
+  background: #f0fdf4;
+}
+
+.patient-table tr.row-normal:hover td {
+  background: #dcfce7;
+}
+
+.patient-table tr.row-completed td {
+  background: #eff6ff;
+}
+
+.patient-table tr.row-completed:hover td {
+  background: #dbeafe;
+}
+
 /* 姓名链接样式 */
 .patient-name {
   font-weight: 500;
@@ -283,6 +299,48 @@ body {
 .status-muted {
   background: #f1f5f9;
   color: #6b7280;
+}
+
+.status-normal {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-completed {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.stat-completed .stat-number {
+  color: #2563eb;
+}
+
+.stat-completed {
+  border-left: 3px solid #2563eb;
+}
+
+.btn-complete {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+}
+
+.btn-complete:hover {
+  background: #dbeafe;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.checkbox-label input {
+  cursor: pointer;
 }
 
 /* 日期输入框 */

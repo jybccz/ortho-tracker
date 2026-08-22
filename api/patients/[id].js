@@ -6,19 +6,20 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'PUT') {
-      const { name, next_visit_date } = req.body;
+      const { name, next_visit_date, completed } = req.body;
 
-      if (!name || !name.trim()) {
+      if (name !== undefined && !name.trim()) {
         return res.status(400).json({ error: '患者姓名不能为空' });
       }
 
+      const updateData = { updated_at: new Date().toISOString() };
+      if (name !== undefined) updateData.name = name.trim();
+      if (next_visit_date !== undefined) updateData.next_visit_date = next_visit_date || null;
+      if (completed !== undefined) updateData.completed = completed;
+
       const { error } = await supabase
         .from('patients')
-        .update({
-          name: name.trim(),
-          next_visit_date: next_visit_date || null,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;

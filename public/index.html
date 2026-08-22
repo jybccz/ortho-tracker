@@ -45,6 +45,10 @@
         <div class="stat-number" id="stat-not-booked">0</div>
         <div class="stat-label">未预约</div>
       </div>
+      <div class="stat-card stat-completed">
+        <div class="stat-number" id="stat-completed">0</div>
+        <div class="stat-label">已完成</div>
+      </div>
     </div>
 
     <!-- 搜索和筛选 -->
@@ -59,6 +63,10 @@
           <option value="name">按姓名</option>
         </select>
       </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showCompleted" onchange="loadPatients()">
+        <span>显示已完成</span>
+      </label>
       <button class="btn btn-outline" onclick="loadPatients()">🔄 刷新</button>
     </div>
 
@@ -160,6 +168,7 @@
 
         <div style="margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
           <button class="btn btn-outline" onclick="openEditNameModal()">✏️ 修改姓名</button>
+          <button class="btn btn-complete" id="toggleCompleteBtn" onclick="toggleComplete()">标记治疗完成</button>
           <button class="btn btn-danger-outline" onclick="deletePatient()">🗑 删除患者</button>
         </div>
       </div>
